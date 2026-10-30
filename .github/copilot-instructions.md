@@ -11,7 +11,7 @@ The single authoritative product specification is `MASTER_SPEC.md`. Read the rel
 - Maintain unit-correct energy calculations and deterministic, tested simulation runs.
 - For each change: state requirement IDs, acceptance criteria, tests, assumptions, and any open decision. Stop and ask the owner for product decisions that the master marks OPEN.
 - No community features, cloud accounts, or backend until explicitly approved.
-- Prefer taking the path of least resistance while keeping architecture extensible with future hookup points/placeholders.
+- Wire labels are optional and not enabled by default; implement a toggleable labels feature in the canvas UI.
 
 ## Blazor Best Practices
 - Follow Blazor best practices for components and layout patterns.

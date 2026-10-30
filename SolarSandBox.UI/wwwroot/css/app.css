@@ -81,9 +81,9 @@ body {
 }
 
 .startup-shell {
-    max-width: 56rem;
-    margin: 1.5rem auto;
-    padding: 0 1rem 2rem;
+    width: 100%;
+    margin: 1rem 0;
+    padding: 0 0.75rem 1rem;
     color: var(--mud-palette-text-primary);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
@@ -540,6 +540,402 @@ body {
 
     .shell-inspector {
         display: none;
+    }
+}
+
+.editor-sprint4-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    gap: 1rem;
+    align-items: stretch;
+}
+
+.editor-canvas-card {
+    margin-top: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.editor-right-tools {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 0.85rem;
+}
+
+.compact-card {
+    margin-top: 0;
+}
+
+.glass-card {
+    border: 1px solid color-mix(in srgb, var(--shell-line) 75%, rgba(255,255,255,0.12));
+    background: linear-gradient(180deg, rgba(20, 24, 44, 0.72), rgba(14, 17, 33, 0.68));
+    backdrop-filter: blur(8px);
+}
+
+.canvas-glass-card {
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 14px 30px rgba(4, 8, 20, 0.28);
+}
+
+.side-glass-card {
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 10px 20px rgba(4, 8, 20, 0.24);
+}
+
+.prototype-canvas-wrapper {
+    margin-top: 0.85rem;
+    min-height: 62vh;
+    border: 1px solid var(--shell-line);
+    border-radius: 0.45rem;
+    overflow: hidden;
+    background: rgba(11, 13, 29, 0.8);
+}
+
+.prototype-diagram-canvas {
+    width: 100%;
+    height: 100%;
+}
+
+.prototype-diagram-canvas .diagram-node {
+    border: 1px solid color-mix(in srgb, var(--shell-primary) 45%, transparent);
+    background: linear-gradient(180deg, rgba(22, 26, 47, 0.94), rgba(14, 18, 35, 0.94));
+    color: var(--shell-text);
+    border-radius: 0.35rem;
+    padding: 0.35rem 0.55rem;
+    box-shadow: 0 0 0 1px rgba(249, 175, 28, 0.12), 0 8px 16px rgba(0, 0, 0, 0.25);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.prototype-diagram-canvas .modern-node {
+    position: relative;
+    width: 238px;
+    min-height: 126px;
+    border-radius: 0.95rem;
+    padding: 0.8rem 0.9rem;
+    border: 1px solid color-mix(in srgb, var(--shell-secondary) 25%, rgba(255,255,255,0.18));
+    background: linear-gradient(160deg, rgba(18, 26, 45, 0.95), rgba(10, 15, 29, 0.96));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 14px 24px rgba(1, 4, 12, 0.42);
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.prototype-diagram-canvas .modern-node-headline {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.45rem;
+}
+
+.prototype-diagram-canvas .modern-node-icon {
+    color: color-mix(in srgb, var(--shell-secondary) 75%, #8ce7ff);
+    font-size: 0.78rem;
+}
+
+.prototype-diagram-canvas .modern-node-eyebrow {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: color-mix(in srgb, var(--shell-secondary) 65%, #d8f7ff);
+}
+
+.prototype-diagram-canvas .modern-node-header {
+    font-size: 1.12rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #edf4ff;
+}
+
+.prototype-diagram-canvas .modern-node-role {
+    margin-top: 0.18rem;
+    color: #f3f7ff;
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+
+.prototype-diagram-canvas .modern-node-divider {
+    height: 1px;
+    margin: 0.7rem 0 0.5rem;
+    background: color-mix(in srgb, var(--shell-line) 80%, rgba(255,255,255,0.1));
+}
+
+.prototype-diagram-canvas .modern-node-subtitle {
+    margin-top: 0;
+    font-size: 0.75rem;
+    letter-spacing: 0.01em;
+    color: color-mix(in srgb, var(--shell-secondary) 54%, #d6ecff);
+}
+
+.prototype-diagram-canvas .modern-node-terminals {
+    margin-top: 0.55rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.prototype-diagram-canvas .modern-terminal-chip {
+    border: 1px solid color-mix(in srgb, var(--shell-line) 70%, rgba(255,255,255,0.14));
+    border-radius: 999px;
+    padding: 0.12rem 0.42rem;
+    font-size: 0.62rem;
+    line-height: 1.3;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #e6f2ff;
+    background: color-mix(in srgb, rgba(16, 24, 45, 0.9) 90%, transparent);
+}
+
+.prototype-diagram-canvas .modern-node.node-solar {
+    border-color: color-mix(in srgb, #f9af1c 40%, rgba(255,255,255,0.12));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px rgba(249, 175, 28, 0.16), 0 14px 24px rgba(1, 4, 12, 0.42);
+}
+
+.prototype-diagram-canvas .modern-node.node-battery {
+    border-color: color-mix(in srgb, #57d67f 40%, rgba(255,255,255,0.12));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px rgba(87, 214, 127, 0.16), 0 14px 24px rgba(1, 4, 12, 0.42);
+}
+
+.prototype-diagram-canvas .modern-node.node-inverter {
+    border-color: color-mix(in srgb, #2ed4b8 42%, rgba(255,255,255,0.12));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px rgba(46, 212, 184, 0.2), 0 14px 24px rgba(1, 4, 12, 0.42);
+}
+
+.prototype-diagram-canvas .modern-node.node-load {
+    border-color: color-mix(in srgb, #a88dff 40%, rgba(255,255,255,0.12));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px rgba(168, 141, 255, 0.17), 0 14px 24px rgba(1, 4, 12, 0.42);
+}
+
+.prototype-diagram-canvas .diagram-link path {
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 9 8;
+    animation: wire-flow 1.4s linear infinite;
+    filter: drop-shadow(0 0 3px rgba(46, 212, 184, 0.45));
+}
+
+.prototype-diagram-canvas .diagram-link.selected path {
+    stroke-dasharray: 5 6;
+    animation-duration: 0.85s;
+}
+
+.prototype-diagram-canvas .diagram-link foreignObject.diagram-link-label div.default-link-label {
+    background: rgba(14, 20, 37, 0.94);
+    border: 1px solid color-mix(in srgb, var(--shell-line) 72%, rgba(255,255,255,0.12));
+    color: #e7f2ff;
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.14rem 0.38rem;
+}
+
+.prototype-diagram-canvas .diagram-port {
+    position: absolute;
+    pointer-events: all;
+    z-index: 5;
+    width: 16px;
+    height: 16px;
+    margin: -8px;
+    border-radius: 50%;
+    border: 1px solid rgba(184, 206, 255, 0.72);
+    background: radial-gradient(circle at 30% 30%, rgba(192, 248, 255, 0.95), rgba(29, 82, 108, 0.88));
+    box-shadow: 0 0 0 2px rgba(18, 26, 45, 0.95), 0 0 10px rgba(46, 212, 184, 0.38);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.prototype-diagram-canvas .diagram-port.top {
+    top: 0;
+    left: 50%;
+    transform: translate(calc(-50% + var(--port-offset-x, 0px)), -52%);
+}
+
+.prototype-diagram-canvas .diagram-port.bottom {
+    bottom: 0;
+    left: 50%;
+    transform: translate(calc(-50% + var(--port-offset-x, 0px)), 52%);
+}
+
+.prototype-diagram-canvas .diagram-port.left {
+    left: 0;
+    top: 50%;
+    transform: translate(-52%, calc(-50% + var(--port-offset-y, 0px)));
+}
+
+.prototype-diagram-canvas .diagram-port.right {
+    right: 0;
+    top: 50%;
+    transform: translate(52%, calc(-50% + var(--port-offset-y, 0px)));
+}
+
+.prototype-diagram-canvas .diagram-port:hover,
+.prototype-diagram-canvas .diagram-port.has-links {
+    box-shadow: 0 0 0 2px rgba(18, 26, 45, 0.95), 0 0 14px rgba(249, 175, 28, 0.55);
+}
+
+.prototype-diagram-canvas .diagram-port:active {
+    cursor: grabbing;
+}
+
+.prototype-diagram-canvas .diagram-port.top:hover,
+.prototype-diagram-canvas .diagram-port.top.has-links {
+    transform: translate(calc(-50% + var(--port-offset-x, 0px)), -52%) scale(1.16);
+}
+
+.prototype-diagram-canvas .diagram-port.bottom:hover,
+.prototype-diagram-canvas .diagram-port.bottom.has-links {
+    transform: translate(calc(-50% + var(--port-offset-x, 0px)), 52%) scale(1.16);
+}
+
+.prototype-diagram-canvas .diagram-port.left:hover,
+.prototype-diagram-canvas .diagram-port.left.has-links {
+    transform: translate(-52%, calc(-50% + var(--port-offset-y, 0px))) scale(1.16);
+}
+
+.prototype-diagram-canvas .diagram-port.right:hover,
+.prototype-diagram-canvas .diagram-port.right.has-links {
+    transform: translate(52%, calc(-50% + var(--port-offset-y, 0px))) scale(1.16);
+}
+
+@keyframes wire-flow {
+    from {
+        stroke-dashoffset: 0;
+    }
+
+    to {
+        stroke-dashoffset: -34;
+    }
+}
+
+.equipment-inspector-panel {
+    margin-top: 0.85rem;
+    border: 1px solid color-mix(in srgb, var(--shell-line) 78%, rgba(255,255,255,0.12));
+    border-radius: 0.8rem;
+    background: linear-gradient(180deg, rgba(14, 19, 36, 0.97), rgba(8, 12, 24, 0.98));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 14px 28px rgba(4, 8, 20, 0.35);
+    padding: 0.9rem;
+}
+
+.equipment-inspector-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.equipment-inspector-title-wrap h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #ebf2ff;
+}
+
+.equipment-inspector-title-wrap p {
+    margin: 0.15rem 0 0;
+    color: color-mix(in srgb, var(--shell-secondary) 60%, #d8ebff);
+    font-size: 0.76rem;
+}
+
+.equipment-inspector-close {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.76rem;
+}
+
+.equipment-inspector-tabs {
+    margin-top: 0.75rem;
+    display: flex;
+    gap: 0.45rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--shell-line) 85%, rgba(255,255,255,0.1));
+    padding-bottom: 0.6rem;
+}
+
+.inspector-tab {
+    border: 1px solid color-mix(in srgb, var(--shell-line) 72%, rgba(255,255,255,0.12));
+    border-radius: 1rem;
+    background: transparent;
+    color: #d8e3fb;
+    padding: 0.32rem 0.65rem;
+    font-size: 0.74rem;
+    cursor: default;
+}
+
+.inspector-tab.active {
+    background: color-mix(in srgb, var(--shell-primary) 26%, rgba(255,255,255,0.06));
+    border-color: color-mix(in srgb, var(--shell-primary) 50%, rgba(255,255,255,0.1));
+    color: #f2f8ff;
+}
+
+.equipment-inspector-body {
+    margin-top: 0.75rem;
+}
+
+.equipment-inspector-body h4 {
+    margin: 0 0 0.55rem;
+    color: #f3f8ff;
+    font-size: 0.9rem;
+}
+
+.equipment-connection-row {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    border: 1px solid color-mix(in srgb, var(--shell-line) 74%, rgba(255,255,255,0.08));
+    background: color-mix(in srgb, rgba(20, 30, 55, 0.85) 92%, transparent);
+    border-radius: 0.55rem;
+    padding: 0.5rem 0.6rem;
+    margin-bottom: 0.45rem;
+}
+
+.equipment-connection-dot {
+    width: 0.52rem;
+    height: 0.52rem;
+    border-radius: 50%;
+    background: #9ca9bf;
+    box-shadow: 0 0 0 3px rgba(156, 169, 191, 0.16);
+}
+
+.equipment-connection-dot.connected {
+    background: #2ed4b8;
+    box-shadow: 0 0 0 3px rgba(46, 212, 184, 0.2);
+}
+
+.equipment-connection-dot.disconnected {
+    background: #9ca9bf;
+    box-shadow: 0 0 0 3px rgba(156, 169, 191, 0.14);
+}
+
+.equipment-connection-name {
+    margin: 0;
+    color: #e8f2ff;
+    font-weight: 600;
+    font-size: 0.82rem;
+}
+
+.equipment-connection-detail {
+    margin: 0.1rem 0 0;
+    color: #a8b6d2;
+    font-size: 0.73rem;
+}
+
+.equipment-inspector-note {
+    margin: 0.6rem 0 0;
+    color: #9fb0d5;
+    font-size: 0.7rem;
+}
+
+.canvas-wire-semantics-note {
+    margin-top: 0.45rem;
+    margin-bottom: 0;
+    font-size: 0.72rem;
+    color: #a7b8dc;
+}
+
+@media (max-width: 1400px) {
+    .editor-sprint4-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .editor-right-tools {
+        justify-content: flex-start;
     }
 }
 
