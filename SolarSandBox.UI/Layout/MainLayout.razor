@@ -1,3 +1,165 @@
 ﻿@inherits LayoutComponentBase
+@implements IDisposable
+@inject ThemeModeService ThemeModeService
 
-@Body
+<MudThemeProvider @bind-IsDarkMode="_isDarkMode" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<div class="shell-root @(_isSidebarExpanded ? "shell-expanded" : "shell-collapsed")">
+    <header class="shell-topbar">
+        <div class="topbar-left">
+            <span class="badge badge-primary"><Blazicon Svg="Lucide.Star" /> Solar Sandbox</span>
+            <span class="badge">Site: Sector-7B</span>
+            <span class="badge">Grid: Ortho-0.5</span>
+        </div>
+        <div class="topbar-right">
+            <span class="badge badge-primary">Layout</span>
+            <span class="badge">Sim Engine</span>
+            <span class="badge">Diagnostics</span>
+        </div>
+    </header>
+
+    <section class="shell-body">
+        <aside class="shell-sidebar">
+            <div class="sidebar-content">
+                <div class="sidebar-top">
+                    <button type="button" class="sidebar-toggle" @onclick="ToggleSidebar" aria-label="Toggle sidebar">
+                        <Blazicon Svg="Lucide.PanelLeft" />
+                    </button>
+
+                    @if (_isSidebarExpanded)
+                    {
+                        <div class="sidebar-brand">Toolbox / Palette</div>
+                    }
+                </div>
+
+                <nav class="sidebar-nav">
+                    <a href="/" class="sidebar-link" aria-label="Canvas Workspace">
+                        <Blazicon Svg="Lucide.LayoutGrid" />
+                        @if (_isSidebarExpanded)
+                        {
+                            <span>Canvas Workspace</span>
+                        }
+                    </a>
+                    <button type="button" class="sidebar-link" aria-label="PV Module Strings">
+                        <Blazicon Svg="Lucide.SquareDashedMousePointer" />
+                        @if (_isSidebarExpanded)
+                        {
+                            <span>PV Module Strings</span>
+                        }
+                    </button>
+                    <button type="button" class="sidebar-link" aria-label="Inverter DC Bus">
+                        <Blazicon Svg="Lucide.Cable" />
+                        @if (_isSidebarExpanded)
+                        {
+                            <span>Inverter / DC Bus</span>
+                        }
+                    </button>
+                    <button type="button" class="sidebar-link" aria-label="Grid Interconnect">
+                        <Blazicon Svg="Lucide.GitMerge" />
+                        @if (_isSidebarExpanded)
+                        {
+                            <span>Grid Interconnect</span>
+                        }
+                    </button>
+                </nav>
+
+                <div class="sidebar-bottom">
+                    <button type="button" class="sidebar-link sidebar-theme" @onclick="ToggleThemeAsync" aria-label="Toggle theme">
+                        <Blazicon Svg="@(_isDarkMode ? Lucide.Sun : Lucide.Moon)" />
+                        @if (_isSidebarExpanded)
+                        {
+                            <span>@(_isDarkMode ? "Light mode" : "Dark mode")</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <main class="shell-canvas-region">
+            <div class="canvas-toolbar">
+                <span class="badge badge-primary"><Blazicon Svg="Lucide.MousePointer2" /> Select</span>
+                <span class="badge"><Blazicon Svg="Lucide.Move" /> Pan</span>
+                <span class="badge"><Blazicon Svg="Lucide.Grid2x2" /> Snap 0.5m</span>
+                <span class="badge">100%</span>
+            </div>
+            <div class="shell-canvas">
+                @Body
+            </div>
+        </main>
+
+        <aside class="shell-inspector">
+            <div class="inspector-header">Inspector / RAD-32</div>
+            <div class="inspector-card">
+                <div class="inspector-title">Orientation Vector</div>
+                <div class="inspector-metrics">
+                    <span>Azimuth <strong>180°</strong></span>
+                    <span>Tilt <strong>22.5°</strong></span>
+                    <span>GCR <strong>0.42</strong></span>
+                </div>
+            </div>
+            <div class="inspector-card">
+                <div class="inspector-title">Electrical Specs</div>
+                <div class="inspector-line"><span>DC Bus Rated</span><strong>150 Vdc</strong></div>
+                <div class="inspector-line"><span>String Voc</span><strong>142.7 V</strong></div>
+                <div class="inspector-line"><span>Max Power</span><strong>312.4 W</strong></div>
+            </div>
+            <div class="inspector-card">
+                <div class="inspector-title">Live Flux Telemetry</div>
+                <div class="inspector-line"><span>Irradiance</span><strong>982 W/m²</strong></div>
+                <div class="inspector-line"><span>Cell Temp</span><strong>48.2°C</strong></div>
+            </div>
+        </aside>
+    </section>
+
+    <footer class="shell-bottombar">
+        <div class="status-left">Solar Engine: Idle | CRS: EPSG:3857</div>
+        <div class="status-center">X: 3,421.12m | Y: 1,840.45m | Elev: 31.4m</div>
+        <div class="status-right">Snap: 0.5m | FPS: 60.0</div>
+    </footer>
+</div>
+
+@code {
+    private bool _isDarkMode = true;
+    private bool _isSidebarExpanded = true;
+
+    protected override void OnInitialized()
+    {
+        ThemeModeService.ThemeChanged += HandleThemeChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await ThemeModeService.InitializeAsync();
+        _isDarkMode = ThemeModeService.IsDarkMode;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleThemeChanged()
+    {
+        _isDarkMode = ThemeModeService.IsDarkMode;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleSidebar()
+    {
+        _isSidebarExpanded = !_isSidebarExpanded;
+    }
+
+    private async Task ToggleThemeAsync()
+    {
+        await ThemeModeService.ToggleThemeAsync();
+    }
+
+    public void Dispose()
+    {
+        ThemeModeService.ThemeChanged -= HandleThemeChanged;
+    }
+}
