@@ -1,7 +1,153 @@
 ﻿@page "/"
+@using SolarSandBox.UI.Models
+@using SolarSandBox.UI.Services
+@inject IStartupProjectRepository StartupProjectRepository
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Solar Sandbox</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="startup-shell">
+    <h1>Solar Sandbox</h1>
 
-Welcome to your new app.
+    @if (_isLoading)
+    {
+        <p class="status">Loading startup workspace...</p>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="status status-error">
+            <p>@_errorMessage</p>
+            <button class="btn" @onclick="LoadStartupAsync">Retry startup</button>
+        </div>
+    }
+    else
+    {
+        @if (_activeProject is null)
+        {
+            <section class="card">
+                <h2>Welcome</h2>
+                <p>Pick a starting point to create your first project.</p>
+            </section>
+        }
+        else
+        {
+            <section class="card">
+                <h2>Active Project</h2>
+                <p><strong>@_activeProject.Name</strong> (@_activeProject.Kind)</p>
+                <p>Last opened: @_activeProject.UpdatedAtUtc.ToLocalTime().ToString("g")</p>
+                <p class="status">Startup complete. This project was auto-opened from IndexedDB.</p>
+                <div class="actions">
+                    <button class="btn btn-primary" @onclick="OpenProjectModal">New Project</button>
+                </div>
+            </section>
+        }
+    }
+</div>
+
+@if (_showProjectModal)
+{
+    <div class="project-modal-backdrop" @onclick="CloseProjectModal">
+        <div class="project-modal" role="dialog" aria-modal="true" @onclick:stopPropagation="true">
+            <div class="project-modal-header">
+                <h2>Create New Project</h2>
+                @if (_activeProject is not null)
+                {
+                    <button type="button" class="modal-close" @onclick="CloseProjectModal" aria-label="Close">
+                        <Blazicon Svg="Lucide.X" />
+                    </button>
+                }
+            </div>
+
+            <div class="project-option-grid">
+                <button type="button" class="project-option" @onclick="() => CreateProjectFromModalAsync(StartupProjectKind.BlankCanvas)" disabled="@_isBusy">
+                    <span class="project-option-icon"><Blazicon Svg="Lucide.SquarePlus" /></span>
+                    <span class="project-option-title">Blank Canvas</span>
+                    <span class="project-option-desc">Start with an empty workspace and build a solar system from scratch.</span>
+                </button>
+
+                <button type="button" class="project-option" @onclick="() => CreateProjectFromModalAsync(StartupProjectKind.DemoSystem)" disabled="@_isBusy">
+                    <span class="project-option-icon"><Blazicon Svg="Lucide.Zap" /></span>
+                    <span class="project-option-title">Demo System</span>
+                    <span class="project-option-desc">Load a preconfigured working solar system and begin experimenting immediately.</span>
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private StartupProject? _activeProject;
+    private bool _isLoading = true;
+    private bool _isBusy;
+    private bool _showProjectModal;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStartupAsync();
+    }
+
+    private async Task LoadStartupAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            await StartupProjectRepository.InitializeAsync();
+            _activeProject = await StartupProjectRepository.GetLastActiveProjectAsync();
+            _showProjectModal = _activeProject is null;
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Startup failed: {ex.Message}";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task CreateProjectAsync(StartupProjectKind kind)
+    {
+        _isBusy = true;
+        _errorMessage = null;
+
+        try
+        {
+            _activeProject = await StartupProjectRepository.CreateProjectAsync(kind);
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Project creation failed: {ex.Message}";
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task CreateProjectFromModalAsync(StartupProjectKind kind)
+    {
+        await CreateProjectAsync(kind);
+
+        if (_activeProject is not null)
+        {
+            _showProjectModal = false;
+        }
+    }
+
+    private void OpenProjectModal()
+    {
+        _showProjectModal = true;
+    }
+
+    private void CloseProjectModal()
+    {
+        if (_activeProject is null)
+        {
+            return;
+        }
+
+        _showProjectModal = false;
+    }
+}
