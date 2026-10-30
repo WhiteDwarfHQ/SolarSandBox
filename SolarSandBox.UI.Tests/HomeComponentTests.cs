@@ -19,6 +19,8 @@ public sealed class HomeComponentTests : TestContext
 
         Services.AddSingleton<IStartupProjectRepository>(repository);
         Services.AddSingleton<IProjectConnectionApplicationService, FakeProjectConnectionApplicationService>();
+        Services.AddSingleton<IProjectBootstrapFactory, FakeProjectBootstrapFactory>();
+        Services.AddSingleton<ICanvasDiagramAdapter, CanvasDiagramAdapter>();
 
         var cut = RenderComponent<Home>();
 
@@ -48,6 +50,8 @@ public sealed class HomeComponentTests : TestContext
 
         Services.AddSingleton<IStartupProjectRepository>(repository);
         Services.AddSingleton<IProjectConnectionApplicationService, FakeProjectConnectionApplicationService>();
+        Services.AddSingleton<IProjectBootstrapFactory, FakeProjectBootstrapFactory>();
+        Services.AddSingleton<ICanvasDiagramAdapter, CanvasDiagramAdapter>();
         JSInterop.SetupVoid("solarSandboxApp.downloadTextFile", _ => true);
 
         var cut = RenderComponent<Home>();
@@ -144,6 +148,34 @@ public sealed class HomeComponentTests : TestContext
                 Severity = DiagnosticSeverity.Warning,
                 Description = "Connection app service test double."
             }));
+        }
+    }
+
+    private sealed class FakeProjectBootstrapFactory : IProjectBootstrapFactory
+    {
+        public SolarProjectDocument CreateDocument(StartupProjectKind kind, DateTimeOffset createdAtUtc)
+        {
+            var projectId = Guid.NewGuid().ToString("N");
+            var project = new StartupProject
+            {
+                Id = projectId,
+                Name = kind == StartupProjectKind.DemoSystem ? "Demo System" : "Blank Canvas",
+                Kind = kind,
+                CreatedAtUtc = createdAtUtc,
+                UpdatedAtUtc = createdAtUtc
+            };
+
+            return new SolarProjectDocument
+            {
+                Id = projectId,
+                SchemaVersion = 2,
+                AppVersion = "0.1.0",
+                Project = project,
+                Nodes = [],
+                EquipmentDefinitions = [],
+                EquipmentInstances = [],
+                ElectricalConnections = []
+            };
         }
     }
 }

@@ -1,0 +1,121 @@
+@using Blazor.Diagrams.Components.Renderers
+@using Blazor.Diagrams.Core.Models
+@using SolarSandBox.UI.Services
+
+<div class="diagram-node modern-node @GetCategoryClass()" @ondblclick="OpenInspectorAsync">
+    <div class="modern-node-headline">
+        <span class="modern-node-icon">⬢</span>
+        <span class="modern-node-eyebrow">@GetEyebrow()</span>
+    </div>
+
+    <div class="modern-node-header">@Node.Title</div>
+    <div class="modern-node-role">@GetRoleTitle()</div>
+    <div class="modern-node-divider"></div>
+    <div class="modern-node-subtitle">@GetFooterLine()</div>
+
+    @if (Node is CanvasEquipmentNodeModel equipmentNode)
+    {
+        <div class="modern-node-terminals">
+            @foreach (var terminal in equipmentNode.Terminals)
+            {
+                <span class="modern-terminal-chip" title="@terminal.DisplayLabel">@terminal.TerminalCode</span>
+            }
+        </div>
+    }
+
+    @foreach (var port in Node.Ports)
+    {
+        var style = GetPortStyle(port);
+        <PortRenderer Port="port" Style="@style" />
+    }
+</div>
+
+@code {
+    [Parameter]
+    public NodeModel Node { get; set; } = default!;
+
+    private async Task OpenInspectorAsync()
+    {
+        if (Node is CanvasEquipmentNodeModel equipmentNode)
+        {
+            await equipmentNode.RequestInspectAsync();
+        }
+    }
+
+    private string GetCategoryClass()
+    {
+        if (Node is not CanvasEquipmentNodeModel equipmentNode)
+        {
+            return "node-generic";
+        }
+
+        return equipmentNode.Category switch
+        {
+            Domain.EquipmentCategory.SolarArray => "node-solar",
+            Domain.EquipmentCategory.BatteryBank => "node-battery",
+            Domain.EquipmentCategory.Inverter => "node-inverter",
+            Domain.EquipmentCategory.ElectricalLoad => "node-load",
+            _ => "node-generic"
+        };
+    }
+
+    private string GetEyebrow()
+    {
+        if (Node is CanvasEquipmentNodeModel equipmentNode)
+        {
+            return equipmentNode.Category switch
+            {
+                Domain.EquipmentCategory.SolarArray => "Solar Array",
+                Domain.EquipmentCategory.BatteryBank => "Battery Bank",
+                Domain.EquipmentCategory.Inverter => "System Manager",
+                Domain.EquipmentCategory.ElectricalLoad => "Load Group",
+                _ => "Electrical Device"
+            };
+        }
+
+        return "Electrical Device";
+    }
+
+    private string GetRoleTitle()
+    {
+        return Node is CanvasEquipmentNodeModel equipmentNode
+            ? equipmentNode.RoleTitle
+            : "Interactive endpoint";
+    }
+
+    private string GetFooterLine()
+    {
+        return Node is CanvasEquipmentNodeModel equipmentNode
+            ? equipmentNode.FooterLine
+            : "Connect ports on node edges";
+    }
+
+    private static string GetPortStyle(PortModel port)
+    {
+        var links = port.Parent.Ports
+            .Where(p => p.Alignment == port.Alignment)
+            .OrderBy(p => p.Id, StringComparer.Ordinal)
+            .ToList();
+
+        var index = links.FindIndex(p => p.Id == port.Id);
+        if (index < 0)
+        {
+            return string.Empty;
+        }
+
+        if (links.Count <= 1)
+        {
+            return string.Empty;
+        }
+
+        var spread = Math.Min(30, 14 + (links.Count * 2));
+        var offset = (index - ((links.Count - 1) / 2.0)) * spread;
+
+        return port.Alignment switch
+        {
+            PortAlignment.Top or PortAlignment.Bottom => $"--port-offset-x:{offset:0.##}px;",
+            PortAlignment.Left or PortAlignment.Right => $"--port-offset-y:{offset:0.##}px;",
+            _ => string.Empty
+        };
+    }
+}

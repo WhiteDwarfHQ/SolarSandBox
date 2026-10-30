@@ -1,9 +1,16 @@
 ﻿@page "/"
+@using Blazor.Diagrams
+@using Blazor.Diagrams.Components
+@using Blazor.Diagrams.Core.Anchors
+@using Blazor.Diagrams.Core.Models
+@using Blazor.Diagrams.Core.Models.Base
 @using SolarSandBox.UI.Domain
 @using SolarSandBox.UI.Models
 @using SolarSandBox.UI.Services
 @inject IStartupProjectRepository StartupProjectRepository
 @inject IProjectConnectionApplicationService ProjectConnectionApplicationService
+@inject IProjectBootstrapFactory ProjectBootstrapFactory
+@inject ICanvasDiagramAdapter CanvasDiagramAdapter
 @inject IJSRuntime JsRuntime
 
 <PageTitle>Solar Sandbox</PageTitle>
@@ -33,42 +40,111 @@
         }
         else
         {
-            <section class="card">
-                <h2>Active Project</h2>
-                <p><strong>@_activeProject.Name</strong> (@_activeProject.Kind)</p>
-                <p>Last opened: @_activeProject.UpdatedAtUtc.ToLocalTime().ToString("g")</p>
-                <p class="status">Startup complete. This project was auto-opened from IndexedDB.</p>
-                @if (!string.IsNullOrWhiteSpace(_exportStatus))
-                {
-                    <p class="status">@_exportStatus</p>
-                }
-                <div class="actions">
-                    <button class="btn btn-primary" @onclick="OpenProjectModal">New Project</button>
-                    <button class="btn" @onclick="ExportProjectJsonAsync" disabled="@_isBusy">Export JSON</button>
-                </div>
-            </section>
-
-            <section class="card">
-                <h2>Connection Validation Check</h2>
-                <p>Run a minimal typed-port validation workflow without the full canvas editor.</p>
-                @if (!string.IsNullOrWhiteSpace(_connectionValidationStatus))
-                {
-                    <p class="status">@_connectionValidationStatus</p>
-                }
-                @if (_connectionMessages.Count > 0)
-                {
-                    <ul>
-                        @foreach (var message in _connectionMessages)
+            <div class="editor-sprint4-layout">
+                <section class="card editor-canvas-card glass-card canvas-glass-card">
+                    <h2>Interactive Canvas Prototype</h2>
+                    <p>Section A viability gate: panning, zooming, and dragging demo equipment nodes using Blazor.Diagrams.</p>
+                    @if (!string.IsNullOrWhiteSpace(_canvasStatus))
+                    {
+                        <p class="status">@_canvasStatus</p>
+                    }
+                    <p class="canvas-wire-semantics-note">Drag from one terminal dot to another to connect. Select a wire then use Disconnect Selected to remove it. Wire motion indicates visual connectivity only; electrical flow remains NOT MODELED in F_004.</p>
+                    <div class="actions">
+                        <button class="btn" @onclick="ReloadCanvasPrototypeAsync" disabled="@_isBusy">Reload Canvas</button>
+                        <button class="btn" @onclick="ResetCanvasViewAsync" disabled="@(_isBusy || _diagram is null)">Reset View</button>
+                        <button class="btn" @onclick="FitCanvasToNodesAsync" disabled="@(_isBusy || _diagram is null)">Zoom to Fit</button>
+                        <button class="btn" @onclick="ToggleWireLabelsAsync" disabled="@(_isBusy || _diagram is null)">@(_showWireLabels ? "Hide Wire Labels" : "Show Wire Labels")</button>
+                        <button class="btn" @onclick="DisconnectSelectedLinksAsync" disabled="@(_isBusy || _diagram is null)">Disconnect Selected</button>
+                    </div>
+                    <div class="prototype-canvas-wrapper">
+                        @if (_diagram is null)
                         {
-                            <li>@message</li>
+                            <p class="status">Canvas not initialized yet.</p>
                         }
-                    </ul>
-                }
-                <div class="actions">
-                    <button class="btn" @onclick="ValidateDemoConnectionAsync" disabled="@_isBusy">Try Valid Demo Connection</button>
-                    <button class="btn" @onclick="ValidateInvalidDemoConnectionAsync" disabled="@_isBusy">Try Invalid Demo Connection</button>
-                </div>
-            </section>
+                        else
+                        {
+                            <CascadingValue Value="_diagram" IsFixed="true">
+                                <DiagramCanvas Class="prototype-diagram-canvas" />
+                            </CascadingValue>
+                        }
+                    </div>
+
+                    @if (_inspector is not null)
+                    {
+                        <section class="equipment-inspector-panel">
+                            <div class="equipment-inspector-head">
+                                <div class="equipment-inspector-title-wrap">
+                                    <h3>@_inspector.Title</h3>
+                                    <p>@_inspector.Subtitle</p>
+                                </div>
+                                <button type="button" class="btn equipment-inspector-close" @onclick="CloseInspector">Close</button>
+                            </div>
+
+                            <div class="equipment-inspector-tabs">
+                                <button type="button" class="inspector-tab">Overview</button>
+                                <button type="button" class="inspector-tab active">Connections</button>
+                                <button type="button" class="inspector-tab">Wiring</button>
+                                <button type="button" class="inspector-tab">Properties</button>
+                            </div>
+
+                            <div class="equipment-inspector-body">
+                                <h4>External Connections</h4>
+                                @foreach (var line in _inspector.ConnectionLines)
+                                {
+                                    <article class="equipment-connection-row">
+                                        <div class="equipment-connection-dot @(line.Connected ? "connected" : "disconnected")"></div>
+                                        <div>
+                                            <p class="equipment-connection-name">@line.Name</p>
+                                            <p class="equipment-connection-detail">@line.Detail</p>
+                                        </div>
+                                    </article>
+                                }
+
+                                <p class="equipment-inspector-note">Conceptual inspection for F_004. Internal conductor modeling remains NOT MODELED in this phase.</p>
+                            </div>
+                        </section>
+                    }
+                </section>
+
+                <aside class="editor-right-tools">
+                    <section class="card compact-card glass-card side-glass-card">
+                        <h2>Active Project</h2>
+                        <p><strong>@_activeProject.Name</strong> (@_activeProject.Kind)</p>
+                        <p>Last opened: @_activeProject.UpdatedAtUtc.ToLocalTime().ToString("g")</p>
+                        <p class="status">Startup complete. This project was auto-opened from IndexedDB.</p>
+                        @if (!string.IsNullOrWhiteSpace(_exportStatus))
+                        {
+                            <p class="status">@_exportStatus</p>
+                        }
+                        <div class="actions">
+                            <button class="btn btn-primary" @onclick="OpenProjectModal">New Project</button>
+                            <button class="btn" @onclick="ExportProjectJsonAsync" disabled="@_isBusy">Export JSON</button>
+                        </div>
+                    </section>
+
+                    <section class="card compact-card glass-card side-glass-card">
+                        <h2>Connection Validation Check</h2>
+                        <p>Run a minimal typed-port validation workflow without the full canvas editor.</p>
+                        @if (!string.IsNullOrWhiteSpace(_connectionValidationStatus))
+                        {
+                            <p class="status">@_connectionValidationStatus</p>
+                        }
+                        @if (_connectionMessages.Count > 0)
+                        {
+                            <ul>
+                                @foreach (var message in _connectionMessages)
+                                {
+                                    <li>@message</li>
+                                }
+                            </ul>
+                        }
+                        <div class="actions">
+                            <button class="btn" @onclick="ValidateDemoConnectionAsync" disabled="@_isBusy">Try Valid Demo Connection</button>
+                            <button class="btn" @onclick="ValidateInvalidDemoConnectionAsync" disabled="@_isBusy">Try Invalid Demo Connection</button>
+                        </div>
+                    </section>
+                </aside>
+            </div>
         }
     }
 </div>
@@ -112,6 +188,15 @@
     private string? _errorMessage;
     private string? _exportStatus;
     private string? _connectionValidationStatus;
+    private string? _canvasStatus;
+    private BlazorDiagram? _diagram;
+    private bool _isHydratingDiagram;
+    private EquipmentInspectorState? _inspector;
+    private bool _showWireLabels;
+    private Dictionary<string, EquipmentPortReference> _portBindingsByDiagramPortId = new(StringComparer.Ordinal);
+    private Dictionary<string, CanvasTerminalDescriptor> _terminalByDiagramPortId = new(StringComparer.Ordinal);
+    private Dictionary<string, EquipmentDefinition> _definitionsById = new(StringComparer.Ordinal);
+    private Dictionary<string, EquipmentInstance> _instancesById = new(StringComparer.Ordinal);
     private readonly List<string> _connectionMessages = [];
 
     protected override async Task OnInitializedAsync()
@@ -132,6 +217,11 @@
             await StartupProjectRepository.InitializeAsync();
             _activeProject = await StartupProjectRepository.GetLastActiveProjectAsync();
             _showProjectModal = _activeProject is null;
+
+            if (_activeProject is not null)
+            {
+                await InitializeCanvasPrototypeAsync();
+            }
         }
         catch (Exception ex)
         {
@@ -154,6 +244,17 @@
         try
         {
             _activeProject = await StartupProjectRepository.CreateProjectAsync(kind);
+            await StartupProjectRepository.SetLastActiveProjectAsync(_activeProject.Id);
+
+            var document = await StartupProjectRepository.GetActiveProjectDocumentAsync();
+            if (kind == StartupProjectKind.DemoSystem && (document is null || (document.Nodes.Count == 0 && document.EquipmentInstances.Count == 0)))
+            {
+                var reseeded = ProjectBootstrapFactory.CreateDocument(StartupProjectKind.DemoSystem, DateTimeOffset.UtcNow);
+                await StartupProjectRepository.SaveProjectDocumentAsync(reseeded);
+                _activeProject = reseeded.Project;
+            }
+
+            await InitializeCanvasPrototypeAsync();
         }
         catch (Exception ex)
         {
@@ -208,6 +309,548 @@
         {
             _isBusy = false;
         }
+    }
+
+    private async Task ReloadCanvasPrototypeAsync()
+    {
+        await InitializeCanvasPrototypeAsync();
+    }
+
+    private async Task InitializeCanvasPrototypeAsync()
+    {
+        if (_diagram is not null)
+        {
+            _diagram.Links.Added -= OnDiagramLinkAdded;
+        }
+
+        var document = await StartupProjectRepository.GetActiveProjectDocumentAsync();
+        if (document is null)
+        {
+            _diagram = null;
+            _canvasStatus = "No active project document available for canvas rendering.";
+            return;
+        }
+
+        if (document.Nodes.Count == 0 && document.EquipmentInstances.Count > 0)
+        {
+            var generatedNodes = document.EquipmentInstances
+                .Select((equipment, index) => new ProjectNodePlaceholder
+                {
+                    Id = string.IsNullOrWhiteSpace(equipment.DiagramNodeId) ? $"{document.Id}-node-{index + 1}" : equipment.DiagramNodeId,
+                    Kind = equipment.DefinitionId,
+                    Label = equipment.DisplayName,
+                    X = 140 + (index * 200),
+                    Y = 140 + ((index % 2) * 150)
+                })
+                .ToList();
+
+            var updatedDocument = new SolarProjectDocument
+            {
+                Id = document.Id,
+                SchemaVersion = document.SchemaVersion,
+                AppVersion = document.AppVersion,
+                Project = document.Project,
+                Nodes = generatedNodes,
+                EquipmentDefinitions = [.. document.EquipmentDefinitions],
+                EquipmentInstances = [.. document.EquipmentInstances],
+                ElectricalConnections = [.. document.ElectricalConnections]
+            };
+
+            await StartupProjectRepository.SaveProjectDocumentAsync(updatedDocument);
+            document = updatedDocument;
+        }
+
+        var buildResult = CanvasDiagramAdapter.Build(document);
+        buildResult.Diagram.RegisterComponent<NodeModel, SolarSandBox.UI.Components.CanvasPrototypeNodeWidget>(true);
+
+        _isHydratingDiagram = true;
+        _portBindingsByDiagramPortId = buildResult.PortBindingsByDiagramPortId;
+        _terminalByDiagramPortId = buildResult.TerminalByDiagramPortId;
+        _definitionsById = buildResult.DefinitionsById;
+        _instancesById = buildResult.InstancesById;
+
+        foreach (var node in buildResult.Diagram.Nodes.OfType<CanvasEquipmentNodeModel>())
+        {
+            node.InspectRequestedAsync = OpenInspectorAsync;
+        }
+
+        _diagram = buildResult.Diagram;
+        _diagram.Links.Added += OnDiagramLinkAdded;
+        _isHydratingDiagram = false;
+
+        _canvasStatus = buildResult.NodeCount > 0
+            ? $"Canvas ready with {buildResult.NodeCount} nodes and {buildResult.LinkCount} links. Drag from any node port to create animated wires."
+            : $"Canvas initialized for document {document.Id}, but no nodes were available. Use Demo project to populate starter equipment.";
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private Task ResetCanvasViewAsync()
+    {
+        try
+        {
+            if (_diagram is null)
+            {
+                _canvasStatus = "Canvas is not initialized.";
+                return Task.CompletedTask;
+            }
+
+            _diagram.SetPan(0, 0);
+            _diagram.SetZoom(1);
+            _canvasStatus = "Canvas view reset to default.";
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Reset view failed: {ex.Message}";
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task FitCanvasToNodesAsync()
+    {
+        try
+        {
+            if (_diagram is null)
+            {
+                _canvasStatus = "Canvas is not initialized.";
+                return Task.CompletedTask;
+            }
+
+            if (_diagram.Nodes.Count == 0)
+            {
+                _canvasStatus = "No nodes available to fit.";
+                return Task.CompletedTask;
+            }
+
+            _diagram.ZoomToFit(40);
+            _canvasStatus = "Canvas zoom adjusted to fit nodes.";
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Zoom to fit failed: {ex.Message}";
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private void OnDiagramLinkAdded(BaseLinkModel link)
+    {
+        if (_isHydratingDiagram || link is not LinkModel)
+        {
+            return;
+        }
+
+        // Wait for the user to finish attaching the wire.
+        link.TargetAttached += OnDiagramLinkTargetAttached;
+    }
+
+    private void OnDiagramLinkTargetAttached(BaseLinkModel link)
+    {
+        if (_isHydratingDiagram || link is not LinkModel linkModel)
+        {
+            return;
+        }
+
+        // Validate and persist only after the target is attached.
+        _ = InvokeAsync(() => HandleUserLinkCreatedAsync(linkModel));
+    }
+
+    private async Task HandleUserLinkCreatedAsync(LinkModel link)
+    {
+        if (_diagram is null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (link.Source is not SinglePortAnchor sourceAnchor || link.Target is not SinglePortAnchor targetAnchor)
+            {
+                _diagram.Links.Remove(link);
+                _canvasStatus = "Only port-to-port links are supported in this prototype.";
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            if (!TryResolvePortReference(sourceAnchor.Port, out var source) || !TryResolvePortReference(targetAnchor.Port, out var target))
+            {
+                _diagram.Links.Remove(link);
+                _canvasStatus = "Unable to resolve port binding for the new link.";
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            if (source.EquipmentInstanceId == target.EquipmentInstanceId && source.PortId == target.PortId)
+            {
+                _diagram.Links.Remove(link);
+                _canvasStatus = "A port cannot be connected to itself.";
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            if (!TryValidateDemoConnectionPath(source, target, out var pathMessage))
+            {
+                _diagram.Links.Remove(link);
+                _connectionValidationStatus = "Connection rejected by demo wiring intent.";
+                _connectionMessages.Clear();
+                _connectionMessages.Add(pathMessage);
+                _canvasStatus = "Only intended demo paths are allowed right now: PV→Inverter PV, Battery↔Inverter Battery, Inverter AC→Load.";
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            var candidate = new ElectricalConnection
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                From = source,
+                To = target,
+                IsVerified = false
+            };
+
+            var result = await ProjectConnectionApplicationService.TryCreateConnectionAsync(candidate);
+            _connectionMessages.Clear();
+            _connectionMessages.AddRange(result.Messages.Select(x => $"[{x.Severity}] {x.Description}"));
+
+            if (!result.IsAllowed)
+            {
+                _diagram.Links.Remove(link);
+                _connectionValidationStatus = "Connection rejected by validation service.";
+                _canvasStatus = "Invalid connection removed.";
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            if (!TryResolvePortDetails(source, out _, out _, out var sourcePort)
+                || !TryResolvePortDetails(target, out _, out _, out var targetPort))
+            {
+                _diagram.Links.Remove(link);
+                _canvasStatus = "Connection could not be visualized because terminal type details were missing.";
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            var visual = BuildConnectionVisual(sourcePort, targetPort, result.IsProvisional);
+            link.Color = visual.Color;
+            link.Width = visual.Width;
+
+            if (_showWireLabels)
+            {
+                link.AddLabel(visual.Label, 0.5, new Blazor.Diagrams.Core.Geometry.Point(0, -10));
+            }
+
+            link.Refresh();
+
+            _connectionValidationStatus = result.IsProvisional
+                ? "Connection accepted as provisional/unverified."
+                : "Connection accepted and persisted.";
+
+            _canvasStatus = "Connection created. Animated wires indicate visual connectivity only (not modeled current flow in F_004).";
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            _diagram.Links.Remove(link);
+            _errorMessage = $"Link creation failed: {ex.Message}";
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task ToggleWireLabelsAsync()
+    {
+        _showWireLabels = !_showWireLabels;
+
+        if (_diagram is null)
+        {
+            return;
+        }
+
+        foreach (var link in _diagram.Links.OfType<LinkModel>())
+        {
+            link.Labels.Clear();
+
+            if (_showWireLabels && TryResolveConnectionPorts(link, out var sourcePort, out var targetPort))
+            {
+                var visual = BuildConnectionVisual(sourcePort, targetPort, isProvisional: true);
+                link.AddLabel(visual.Label, 0.5, new Blazor.Diagrams.Core.Geometry.Point(0, -10));
+            }
+
+            link.Refresh();
+        }
+
+        _canvasStatus = _showWireLabels
+            ? "Wire labels enabled for readability."
+            : "Wire labels hidden.";
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DisconnectSelectedLinksAsync()
+    {
+        if (_diagram is null)
+        {
+            return;
+        }
+
+        var selectedLinks = _diagram.Links.OfType<LinkModel>().Where(link => link.Selected).ToList();
+        if (selectedLinks.Count == 0)
+        {
+            _canvasStatus = "No selected links to disconnect.";
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        _diagram.Links.Remove(selectedLinks);
+
+        var document = await StartupProjectRepository.GetActiveProjectDocumentAsync();
+        if (document is not null)
+        {
+            var selectedIds = selectedLinks.Select(link => link.Id).ToHashSet(StringComparer.Ordinal);
+            var updatedDocument = new SolarProjectDocument
+            {
+                Id = document.Id,
+                SchemaVersion = document.SchemaVersion,
+                AppVersion = document.AppVersion,
+                Project = document.Project,
+                Nodes = [.. document.Nodes],
+                EquipmentDefinitions = [.. document.EquipmentDefinitions],
+                EquipmentInstances = [.. document.EquipmentInstances],
+                ElectricalConnections = [.. document.ElectricalConnections.Where(connection => !selectedIds.Contains(connection.Id))]
+            };
+
+            await StartupProjectRepository.SaveProjectDocumentAsync(updatedDocument);
+        }
+
+        _connectionValidationStatus = "Selected wire(s) disconnected and persisted.";
+        _canvasStatus = $"Disconnected {selectedLinks.Count} selected wire(s).";
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private bool TryResolveConnectionPorts(LinkModel link, out ElectricalPortDefinition sourcePort, out ElectricalPortDefinition targetPort)
+    {
+        sourcePort = default!;
+        targetPort = default!;
+
+        if (link.Source is not SinglePortAnchor sourceAnchor || link.Target is not SinglePortAnchor targetAnchor)
+        {
+            return false;
+        }
+
+        if (!TryResolvePortReference(sourceAnchor.Port, out var sourceRef) || !TryResolvePortReference(targetAnchor.Port, out var targetRef))
+        {
+            return false;
+        }
+
+        if (!TryResolvePortDetails(sourceRef, out _, out _, out sourcePort)
+            || !TryResolvePortDetails(targetRef, out _, out _, out targetPort))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool TryResolvePortReference(PortModel port, out EquipmentPortReference reference)
+    {
+        if (_portBindingsByDiagramPortId.TryGetValue(port.Id, out var resolved))
+        {
+            reference = new EquipmentPortReference
+            {
+                EquipmentInstanceId = resolved.EquipmentInstanceId,
+                PortId = resolved.PortId
+            };
+
+            return true;
+        }
+
+        reference = default!;
+        return false;
+    }
+
+    private bool TryValidateDemoConnectionPath(EquipmentPortReference source, EquipmentPortReference target, out string message)
+    {
+        if (!TryResolvePortDetails(source, out var sourceInstance, out var sourceDefinition, out var sourcePort)
+            || !TryResolvePortDetails(target, out var targetInstance, out var targetDefinition, out var targetPort))
+        {
+            message = "Connection could not be evaluated because terminal metadata was missing.";
+            return false;
+        }
+
+        var isPvToInverter =
+            (sourceDefinition.Category == EquipmentCategory.SolarArray && sourcePort.Purpose == PortPurpose.PvOutput
+             && targetDefinition.Category == EquipmentCategory.Inverter && targetPort.Purpose == PortPurpose.PvInput)
+            ||
+            (targetDefinition.Category == EquipmentCategory.SolarArray && targetPort.Purpose == PortPurpose.PvOutput
+             && sourceDefinition.Category == EquipmentCategory.Inverter && sourcePort.Purpose == PortPurpose.PvInput);
+
+        var isBatteryToInverter =
+            (sourceDefinition.Category == EquipmentCategory.BatteryBank && sourcePort.Purpose == PortPurpose.BatteryConnection
+             && targetDefinition.Category == EquipmentCategory.Inverter && targetPort.Purpose == PortPurpose.BatteryConnection)
+            ||
+            (targetDefinition.Category == EquipmentCategory.BatteryBank && targetPort.Purpose == PortPurpose.BatteryConnection
+             && sourceDefinition.Category == EquipmentCategory.Inverter && sourcePort.Purpose == PortPurpose.BatteryConnection);
+
+        var isInverterToLoad =
+            (sourceDefinition.Category == EquipmentCategory.Inverter && sourcePort.Purpose == PortPurpose.AcOutput
+             && targetDefinition.Category == EquipmentCategory.ElectricalLoad && targetPort.Purpose == PortPurpose.LoadInput)
+            ||
+            (targetDefinition.Category == EquipmentCategory.Inverter && targetPort.Purpose == PortPurpose.AcOutput
+             && sourceDefinition.Category == EquipmentCategory.ElectricalLoad && sourcePort.Purpose == PortPurpose.LoadInput);
+
+        if (isPvToInverter || isBatteryToInverter || isInverterToLoad)
+        {
+            message = $"Demo path accepted: {DescribePort(sourceInstance, sourcePort)} → {DescribePort(targetInstance, targetPort)}.";
+            return true;
+        }
+
+        message = $"Demo path rejected: {DescribePort(sourceInstance, sourcePort)} cannot connect to {DescribePort(targetInstance, targetPort)} in this phase.";
+        return false;
+    }
+
+    private bool TryResolvePortDetails(
+        EquipmentPortReference reference,
+        out EquipmentInstance instance,
+        out EquipmentDefinition definition,
+        out ElectricalPortDefinition port)
+    {
+        if (!_instancesById.TryGetValue(reference.EquipmentInstanceId, out instance!))
+        {
+            definition = default!;
+            port = default!;
+            return false;
+        }
+
+        if (!_definitionsById.TryGetValue(instance.DefinitionId, out definition!))
+        {
+            port = default!;
+            return false;
+        }
+
+        port = definition.Ports.FirstOrDefault(x => x.Id == reference.PortId)!;
+        return port is not null;
+    }
+
+    private string DescribePort(EquipmentInstance instance, ElectricalPortDefinition port)
+    {
+        var key = $"{instance.Id}::{port.Id}";
+        if (_terminalByDiagramPortId.TryGetValue(key, out var terminal))
+        {
+            return $"{instance.DisplayName} ({terminal.TerminalCode})";
+        }
+
+        return $"{instance.DisplayName} ({port.Label})";
+    }
+
+    private static (string Color, double Width, string Label) BuildConnectionVisual(
+        ElectricalPortDefinition sourcePort,
+        ElectricalPortDefinition targetPort,
+        bool isProvisional)
+    {
+        var type = sourcePort.ElectricalType == targetPort.ElectricalType
+            ? sourcePort.ElectricalType
+            : ElectricalType.Unknown;
+
+        return type switch
+        {
+            ElectricalType.Ac => isProvisional
+                ? ("#36c2ff", 2.9, "AC · visual")
+                : ("#36c2ff", 3.2, "AC"),
+            ElectricalType.Dc => isProvisional
+                ? ("#f9af1c", 2.9, "DC · visual")
+                : ("#f9af1c", 3.2, "DC"),
+            _ => isProvisional
+                ? ("#a6b2d6", 2.7, "UNK · visual")
+                : ("#c6d2f8", 3.0, "UNK")
+        };
+    }
+
+    private async Task OpenInspectorAsync(CanvasEquipmentNodeModel node)
+    {
+        if (!_instancesById.TryGetValue(node.EquipmentInstanceId, out var instance))
+        {
+            return;
+        }
+
+        if (!_definitionsById.TryGetValue(instance.DefinitionId, out var definition))
+        {
+            return;
+        }
+
+        var connections = BuildInspectorConnectionLines(instance, definition);
+
+        _inspector = new EquipmentInspectorState
+        {
+            EquipmentInstanceId = instance.Id,
+            Title = instance.DisplayName,
+            Subtitle = $"Equipment Inspector · {definition.Category}",
+            HeroLine = node.RoleTitle,
+            ConnectionsSummary = $"{connections.Count(x => x.Connected)} connected / {connections.Count}",
+            Category = definition.Category,
+            ConnectionLines = connections
+        };
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private IReadOnlyList<InspectorConnectionLine> BuildInspectorConnectionLines(EquipmentInstance instance, EquipmentDefinition definition)
+    {
+        return definition.Ports
+            .Select(port =>
+            {
+                var isConnected = _portBindingsByDiagramPortId.TryGetValue($"{instance.Id}::{port.Id}", out var reference)
+                    && _diagram is not null
+                    && _diagram.Links.Any(l => LinkContainsReference(l, reference));
+
+                var detail = isConnected
+                    ? BuildConnectedPortDetail(instance.Id, port.Id, port)
+                    : "Not connected";
+
+                return new InspectorConnectionLine
+                {
+                    Name = port.Label,
+                    Detail = detail,
+                    Connected = isConnected
+                };
+            })
+            .ToList();
+    }
+
+    private string BuildConnectedPortDetail(string equipmentInstanceId, string portId, ElectricalPortDefinition fallbackPort)
+    {
+        var diagramPortId = $"{equipmentInstanceId}::{portId}";
+        if (_terminalByDiagramPortId.TryGetValue(diagramPortId, out var terminal))
+        {
+            return $"{terminal.TerminalCode} · {terminal.DisplayLabel}";
+        }
+
+        return $"{fallbackPort.Purpose} · {fallbackPort.ElectricalType}";
+    }
+
+    private bool LinkContainsReference(BaseLinkModel link, EquipmentPortReference reference)
+    {
+        if (link is not LinkModel model)
+        {
+            return false;
+        }
+
+        return Matches(model.Source, reference) || Matches(model.Target, reference);
+    }
+
+    private bool Matches(Blazor.Diagrams.Core.Anchors.Anchor anchor, EquipmentPortReference reference)
+    {
+        if (anchor is not SinglePortAnchor portAnchor)
+        {
+            return false;
+        }
+
+        return _portBindingsByDiagramPortId.TryGetValue(portAnchor.Port.Id, out var found)
+               && found.EquipmentInstanceId == reference.EquipmentInstanceId
+               && found.PortId == reference.PortId;
+    }
+
+    private void CloseInspector()
+    {
+        _inspector = null;
     }
 
     private async Task ValidateDemoConnectionAsync()
