@@ -6,6 +6,11 @@
 **Audience:** Product owner, engineering contributors, AI coding agents, testers  
 **Source:** Original Off-Grid Topology Tracer concept; subsequent product decisions and refinements.
 
+## Implementation status snapshot (working branch progression)
+- **F_001 complete:** startup shell, dark-first UI baseline, theme toggle, first-run project modal, last-project reopen.
+- **F_002 complete:** project JSON envelope, demo/blank bootstrap, IndexedDB compatibility fixes, export action, baseline unit+bUnit tests.
+- **F_003 in progress:** electrical domain foundations for equipment definitions/instances, typed electrical ports, independent connection validation service, schema v2 document extension, migration-safe persistence defaults, and minimal observable validation workflow (no simulation engine scope in this milestone).
+
 > **North star:** A fast, beautiful, tablet-first, entirely usable offline solar design studio where DIY builders and residential contractors connect real or custom equipment, inspect potential electrical incompatibilities, and simulate the energy consequences of their designs before purchase or installation.
 
 > **Safety boundary:** Solar Sandbox is a planning/education and estimation tool. Its diagrams, compatibility warnings, and simulations do not certify code compliance or replace equipment manuals, qualified design review, electrical permits, or field testing.

@@ -37,6 +37,17 @@ Feature blocks:
 7. Project JSON export (minimum export scope)
 8. Unit + integration test slice
 
+### Sprint 1 Implementation Status (Current)
+
+- Feature block 1: Offline shell and startup flow — **Implemented**
+- Feature block 2: Blank Canvas + Demo System bootstrap — **Implemented**
+- Feature block 3: Generic equipment starter set — **Implemented (F_003)**
+- Feature block 4: Minimal typed-port connection flow with invalid-edge prevention — **Implemented foundation (F_003 domain validation + workflow)**
+- Feature block 5: Manual weather preset only — **Pending**
+- Feature block 6: Deterministic scenario run (60-minute default) — **Pending**
+- Feature block 7: Project JSON export (minimum scope) — **Implemented**
+- Feature block 8: Unit + integration test slice — **In progress (expanded tests added in F_003)**
+
 ## Sprint 2 — Gate 2 (Complete Circuit Foundations)
 
 Feature blocks:
