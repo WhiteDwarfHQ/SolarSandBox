@@ -12,5 +12,9 @@ public interface IStartupProjectRepository
 
     Task SetLastActiveProjectAsync(string projectId);
 
+    Task<SolarProjectDocument?> GetActiveProjectDocumentAsync();
+
+    Task SaveProjectDocumentAsync(SolarProjectDocument document);
+
     Task<string?> ExportActiveProjectJsonAsync();
 }

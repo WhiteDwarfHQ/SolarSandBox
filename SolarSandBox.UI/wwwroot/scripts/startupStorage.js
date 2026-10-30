@@ -43,15 +43,24 @@ async function getLastActiveProjectDocument() {
     }
 
     if (isProjectDocument(storedProject)) {
-        return storedProject;
+        const upgradedDocument = upgradeProjectDocument(storedProject);
+
+        if (upgradedDocument !== storedProject) {
+            await createOrUpdateProject(upgradedDocument);
+        }
+
+        return upgradedDocument;
     }
 
     const migrated = {
         id: storedProject.id,
-        schemaVersion: 1,
+        schemaVersion: 2,
         appVersion: '0.1.0',
         project: storedProject,
-        nodes: []
+        nodes: [],
+        equipmentDefinitions: [],
+        equipmentInstances: [],
+        electricalConnections: []
     };
 
     await createOrUpdateProject(migrated);
@@ -142,5 +151,38 @@ function normalizeProjectDocument(projectDocument) {
         throw new Error('Project document id is required.');
     }
 
-    return normalized;
+    normalized.schemaVersion = typeof normalized.schemaVersion === 'number' ? normalized.schemaVersion : 1;
+    normalized.nodes = Array.isArray(normalized.nodes) ? normalized.nodes : [];
+    normalized.equipmentDefinitions = Array.isArray(normalized.equipmentDefinitions) ? normalized.equipmentDefinitions : [];
+    normalized.equipmentInstances = Array.isArray(normalized.equipmentInstances) ? normalized.equipmentInstances : [];
+    normalized.electricalConnections = Array.isArray(normalized.electricalConnections) ? normalized.electricalConnections : [];
+
+    return upgradeProjectDocument(normalized);
+}
+
+function upgradeProjectDocument(document) {
+    const next = { ...document };
+    let changed = false;
+
+    if ((next.schemaVersion ?? 1) < 2) {
+        next.schemaVersion = 2;
+        changed = true;
+    }
+
+    if (!Array.isArray(next.equipmentDefinitions)) {
+        next.equipmentDefinitions = [];
+        changed = true;
+    }
+
+    if (!Array.isArray(next.equipmentInstances)) {
+        next.equipmentInstances = [];
+        changed = true;
+    }
+
+    if (!Array.isArray(next.electricalConnections)) {
+        next.electricalConnections = [];
+        changed = true;
+    }
+
+    return changed ? next : document;
 }

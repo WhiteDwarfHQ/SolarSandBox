@@ -1,5 +1,6 @@
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
+using SolarSandBox.UI.Domain;
 using SolarSandBox.UI.Models;
 using SolarSandBox.UI.Pages;
 using SolarSandBox.UI.Services;
@@ -17,6 +18,7 @@ public sealed class HomeComponentTests : TestContext
         };
 
         Services.AddSingleton<IStartupProjectRepository>(repository);
+        Services.AddSingleton<IProjectConnectionApplicationService, FakeProjectConnectionApplicationService>();
 
         var cut = RenderComponent<Home>();
 
@@ -45,6 +47,7 @@ public sealed class HomeComponentTests : TestContext
         };
 
         Services.AddSingleton<IStartupProjectRepository>(repository);
+        Services.AddSingleton<IProjectConnectionApplicationService, FakeProjectConnectionApplicationService>();
         JSInterop.SetupVoid("solarSandboxApp.downloadTextFile", _ => true);
 
         var cut = RenderComponent<Home>();
@@ -67,6 +70,8 @@ public sealed class HomeComponentTests : TestContext
 
         public string? ExportJson { get; set; }
 
+        public SolarProjectDocument? ActiveDocument { get; set; }
+
         public Task InitializeAsync() => Task.CompletedTask;
 
         public Task<StartupProject?> GetLastActiveProjectAsync() => Task.FromResult(LastActiveProject);
@@ -83,7 +88,19 @@ public sealed class HomeComponentTests : TestContext
                 UpdatedAtUtc = now
             };
 
-            ExportJson = "{\"schemaVersion\":1}";
+            ActiveDocument = new SolarProjectDocument
+            {
+                Id = LastActiveProject.Id,
+                SchemaVersion = 2,
+                AppVersion = "0.1.0",
+                Project = LastActiveProject,
+                Nodes = [],
+                EquipmentDefinitions = [],
+                EquipmentInstances = [],
+                ElectricalConnections = []
+            };
+
+            ExportJson = "{\"schemaVersion\":2}";
 
             return Task.FromResult(LastActiveProject);
         }
@@ -105,6 +122,28 @@ public sealed class HomeComponentTests : TestContext
             return Task.CompletedTask;
         }
 
+        public Task<SolarProjectDocument?> GetActiveProjectDocumentAsync() => Task.FromResult(ActiveDocument);
+
+        public Task SaveProjectDocumentAsync(SolarProjectDocument document)
+        {
+            ActiveDocument = document;
+            LastActiveProject = document.Project;
+            return Task.CompletedTask;
+        }
+
         public Task<string?> ExportActiveProjectJsonAsync() => Task.FromResult(ExportJson);
+    }
+
+    private sealed class FakeProjectConnectionApplicationService : IProjectConnectionApplicationService
+    {
+        public Task<ConnectionValidationResult> TryCreateConnectionAsync(ElectricalConnection candidate)
+        {
+            return Task.FromResult(ConnectionValidationResult.Rejected(new ConnectionValidationMessage
+            {
+                Code = "not-implemented-in-test",
+                Severity = DiagnosticSeverity.Warning,
+                Description = "Connection app service test double."
+            }));
+        }
     }
 }

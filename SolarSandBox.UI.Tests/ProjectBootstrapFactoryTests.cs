@@ -14,11 +14,14 @@ public sealed class ProjectBootstrapFactoryTests
 
         var document = _factory.CreateDocument(StartupProjectKind.BlankCanvas, createdAt);
 
-        Assert.Equal(1, document.SchemaVersion);
+        Assert.Equal(2, document.SchemaVersion);
         Assert.Equal("0.1.0", document.AppVersion);
         Assert.Equal(StartupProjectKind.BlankCanvas, document.Project.Kind);
         Assert.Equal(createdAt, document.Project.CreatedAtUtc);
         Assert.Empty(document.Nodes);
+        Assert.Empty(document.EquipmentInstances);
+        Assert.Empty(document.ElectricalConnections);
+        Assert.Equal(4, document.EquipmentDefinitions.Count);
     }
 
     [Fact]
@@ -29,9 +32,13 @@ public sealed class ProjectBootstrapFactoryTests
         var document = _factory.CreateDocument(StartupProjectKind.DemoSystem, createdAt);
 
         Assert.Equal(StartupProjectKind.DemoSystem, document.Project.Kind);
-        Assert.Equal(3, document.Nodes.Count);
+        Assert.Equal(4, document.Nodes.Count);
         Assert.Contains(document.Nodes, n => n.Kind == "pv-array");
+        Assert.Contains(document.Nodes, n => n.Kind == "battery");
         Assert.Contains(document.Nodes, n => n.Kind == "inverter");
         Assert.Contains(document.Nodes, n => n.Kind == "load");
+        Assert.Equal(4, document.EquipmentDefinitions.Count);
+        Assert.Equal(4, document.EquipmentInstances.Count);
+        Assert.Equal(3, document.ElectricalConnections.Count);
     }
 }

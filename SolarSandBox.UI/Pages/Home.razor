@@ -1,7 +1,9 @@
 ﻿@page "/"
+@using SolarSandBox.UI.Domain
 @using SolarSandBox.UI.Models
 @using SolarSandBox.UI.Services
 @inject IStartupProjectRepository StartupProjectRepository
+@inject IProjectConnectionApplicationService ProjectConnectionApplicationService
 @inject IJSRuntime JsRuntime
 
 <PageTitle>Solar Sandbox</PageTitle>
@@ -43,6 +45,28 @@
                 <div class="actions">
                     <button class="btn btn-primary" @onclick="OpenProjectModal">New Project</button>
                     <button class="btn" @onclick="ExportProjectJsonAsync" disabled="@_isBusy">Export JSON</button>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>Connection Validation Check</h2>
+                <p>Run a minimal typed-port validation workflow without the full canvas editor.</p>
+                @if (!string.IsNullOrWhiteSpace(_connectionValidationStatus))
+                {
+                    <p class="status">@_connectionValidationStatus</p>
+                }
+                @if (_connectionMessages.Count > 0)
+                {
+                    <ul>
+                        @foreach (var message in _connectionMessages)
+                        {
+                            <li>@message</li>
+                        }
+                    </ul>
+                }
+                <div class="actions">
+                    <button class="btn" @onclick="ValidateDemoConnectionAsync" disabled="@_isBusy">Try Valid Demo Connection</button>
+                    <button class="btn" @onclick="ValidateInvalidDemoConnectionAsync" disabled="@_isBusy">Try Invalid Demo Connection</button>
                 </div>
             </section>
         }
@@ -87,6 +111,8 @@
     private bool _showProjectModal;
     private string? _errorMessage;
     private string? _exportStatus;
+    private string? _connectionValidationStatus;
+    private readonly List<string> _connectionMessages = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -98,6 +124,8 @@
         _isLoading = true;
         _errorMessage = null;
         _exportStatus = null;
+        _connectionValidationStatus = null;
+        _connectionMessages.Clear();
 
         try
         {
@@ -120,6 +148,8 @@
         _isBusy = true;
         _errorMessage = null;
         _exportStatus = null;
+        _connectionValidationStatus = null;
+        _connectionMessages.Clear();
 
         try
         {
@@ -173,6 +203,95 @@
         catch (Exception ex)
         {
             _errorMessage = $"Project export failed: {ex.Message}";
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task ValidateDemoConnectionAsync()
+    {
+        await ValidateConnectionInternalAsync(validConnection: true);
+    }
+
+    private async Task ValidateInvalidDemoConnectionAsync()
+    {
+        await ValidateConnectionInternalAsync(validConnection: false);
+    }
+
+    private async Task ValidateConnectionInternalAsync(bool validConnection)
+    {
+        _isBusy = true;
+        _errorMessage = null;
+        _connectionValidationStatus = null;
+        _connectionMessages.Clear();
+
+        try
+        {
+            var document = await StartupProjectRepository.GetActiveProjectDocumentAsync();
+            if (document is null)
+            {
+                _connectionValidationStatus = "No active project found.";
+                return;
+            }
+
+            var inverter = document.EquipmentInstances.FirstOrDefault(x => x.DefinitionId == "def-inverter-generic");
+            var battery = document.EquipmentInstances.FirstOrDefault(x => x.DefinitionId == "def-battery-48v-generic");
+            var load = document.EquipmentInstances.FirstOrDefault(x => x.DefinitionId == "def-load-generic");
+            var pvArray = document.EquipmentInstances.FirstOrDefault(x => x.DefinitionId == "def-solar-array-6x400w");
+
+            if (inverter is null || battery is null || load is null || pvArray is null)
+            {
+                _connectionValidationStatus = "Active project does not yet contain demo equipment required for validation checks.";
+                return;
+            }
+
+            var candidate = validConnection
+                ? new ElectricalConnection
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    From = new EquipmentPortReference
+                    {
+                        EquipmentInstanceId = inverter.Id,
+                        PortId = "battery-dc-inout"
+                    },
+                    To = new EquipmentPortReference
+                    {
+                        EquipmentInstanceId = battery.Id,
+                        PortId = "battery-dc-port"
+                    },
+                    IsVerified = false
+                }
+                : new ElectricalConnection
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    From = new EquipmentPortReference
+                    {
+                        EquipmentInstanceId = pvArray.Id,
+                        PortId = "pv-dc-out"
+                    },
+                    To = new EquipmentPortReference
+                    {
+                        EquipmentInstanceId = load.Id,
+                        PortId = "ac-load-in"
+                    },
+                    IsVerified = false
+                };
+
+            var result = await ProjectConnectionApplicationService.TryCreateConnectionAsync(candidate);
+
+            _connectionValidationStatus = result.IsAllowed
+                ? result.IsProvisional
+                    ? "Connection accepted as provisional/unverified."
+                    : "Connection accepted and persisted."
+                : "Connection rejected by validation service.";
+
+            _connectionMessages.AddRange(result.Messages.Select(x => $"[{x.Severity}] {x.Description}"));
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Connection validation failed: {ex.Message}";
         }
         finally
         {
