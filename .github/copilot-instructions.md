@@ -11,12 +11,7 @@ The single authoritative product specification is `MASTER_SPEC.md`. Read the rel
 - Maintain unit-correct energy calculations and deterministic, tested simulation runs.
 - For each change: state requirement IDs, acceptance criteria, tests, assumptions, and any open decision. Stop and ask the owner for product decisions that the master marks OPEN.
 - No community features, cloud accounts, or backend until explicitly approved.
-
-## UI/UX Guidelines
-- Design a smooth, comforting, DIY-friendly UI; avoid a rigid CAD-like appearance.
-- Implement a sidebar layout instead of a header bar.
-- Use Lucide icons for UI icons.
-- Include a working dark/light mode toggle by default.
+- Prefer taking the path of least resistance while keeping architecture extensible with future hookup points/placeholders.
 
 ## Blazor Best Practices
 - Follow Blazor best practices for components and layout patterns.

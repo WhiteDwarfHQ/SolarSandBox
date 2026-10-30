@@ -1,10 +1,17 @@
+using System.Text.Json;
 using Microsoft.JSInterop;
 using SolarSandBox.UI.Models;
 
 namespace SolarSandBox.UI.Services;
 
-public sealed class StartupProjectRepository(IJSRuntime jsRuntime) : IStartupProjectRepository
+public sealed class StartupProjectRepository(IJSRuntime jsRuntime, IProjectBootstrapFactory projectBootstrapFactory) : IStartupProjectRepository
 {
+    private static readonly JsonSerializerOptions ExportSerializerOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     public async Task InitializeAsync()
     {
         await jsRuntime.InvokeVoidAsync("solarSandboxStartupStorage.initialize");
@@ -12,34 +19,33 @@ public sealed class StartupProjectRepository(IJSRuntime jsRuntime) : IStartupPro
 
     public async Task<StartupProject?> GetLastActiveProjectAsync()
     {
-        return await jsRuntime.InvokeAsync<StartupProject?>("solarSandboxStartupStorage.getLastActiveProject");
+        var document = await jsRuntime.InvokeAsync<SolarProjectDocument?>("solarSandboxStartupStorage.getLastActiveProjectDocument");
+        return document?.Project;
     }
 
     public async Task<StartupProject> CreateProjectAsync(StartupProjectKind kind)
     {
-        var now = DateTimeOffset.UtcNow;
+        var document = projectBootstrapFactory.CreateDocument(kind, DateTimeOffset.UtcNow);
 
-        var project = new StartupProject
-        {
-            Id = Guid.NewGuid().ToString("N"),
-            Name = kind switch
-            {
-                StartupProjectKind.DemoSystem => "Demo System",
-                _ => "Blank Canvas"
-            },
-            Kind = kind,
-            CreatedAtUtc = now,
-            UpdatedAtUtc = now
-        };
+        await jsRuntime.InvokeVoidAsync("solarSandboxStartupStorage.createOrUpdateProject", document);
+        await SetLastActiveProjectAsync(document.Project.Id);
 
-        var savedProject = await jsRuntime.InvokeAsync<StartupProject>("solarSandboxStartupStorage.createOrUpdateProject", project);
-        await SetLastActiveProjectAsync(savedProject.Id);
-
-        return savedProject;
+        return document.Project;
     }
 
     public async Task SetLastActiveProjectAsync(string projectId)
     {
         await jsRuntime.InvokeVoidAsync("solarSandboxStartupStorage.setLastActiveProject", projectId);
+    }
+
+    public async Task<string?> ExportActiveProjectJsonAsync()
+    {
+        var document = await jsRuntime.InvokeAsync<SolarProjectDocument?>("solarSandboxStartupStorage.getLastActiveProjectDocument");
+        if (document is null)
+        {
+            return null;
+        }
+
+        return JsonSerializer.Serialize(document, ExportSerializerOptions);
     }
 }
