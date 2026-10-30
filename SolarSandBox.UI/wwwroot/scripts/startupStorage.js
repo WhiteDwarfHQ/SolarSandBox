@@ -7,6 +7,7 @@ const lastActiveProjectIdKey = 'lastActiveProjectId';
 window.solarSandboxStartupStorage = {
     initialize,
     getLastActiveProject,
+    getLastActiveProjectDocument,
     createOrUpdateProject,
     setLastActiveProject
 };
@@ -16,6 +17,11 @@ async function initialize() {
 }
 
 async function getLastActiveProject() {
+    const document = await getLastActiveProjectDocument();
+    return document ? document.project : null;
+}
+
+async function getLastActiveProjectDocument() {
     const db = await openDatabase();
 
     const appTx = db.transaction(appStoreName, 'readonly');
@@ -29,21 +35,40 @@ async function getLastActiveProject() {
 
     const projectTx = db.transaction(projectStoreName, 'readonly');
     const projectStore = projectTx.objectStore(projectStoreName);
-    const project = await requestToPromise(projectStore.get(appEntry.value));
+    const storedProject = await requestToPromise(projectStore.get(appEntry.value));
     await transactionToPromise(projectTx);
 
-    return project ?? null;
+    if (!storedProject) {
+        return null;
+    }
+
+    if (isProjectDocument(storedProject)) {
+        return storedProject;
+    }
+
+    const migrated = {
+        id: storedProject.id,
+        schemaVersion: 1,
+        appVersion: '0.1.0',
+        project: storedProject,
+        nodes: []
+    };
+
+    await createOrUpdateProject(migrated);
+
+    return migrated;
 }
 
-async function createOrUpdateProject(project) {
+async function createOrUpdateProject(projectDocument) {
+    const normalized = normalizeProjectDocument(projectDocument);
+
     const db = await openDatabase();
     const tx = db.transaction(projectStoreName, 'readwrite');
     const store = tx.objectStore(projectStoreName);
 
-    store.put(project);
+    store.put(normalized);
 
     await transactionToPromise(tx);
-    return project;
 }
 
 async function setLastActiveProject(projectId) {
@@ -90,4 +115,32 @@ function transactionToPromise(transaction) {
         transaction.onabort = () => reject(transaction.error ?? new Error('IndexedDB transaction aborted.'));
         transaction.onerror = () => reject(transaction.error ?? new Error('IndexedDB transaction failed.'));
     });
+}
+
+function isProjectDocument(value) {
+    return value && typeof value === 'object'
+        && typeof value.id === 'string' && value.id.length > 0
+        && typeof value.appVersion === 'string'
+        && value.project && typeof value.project === 'object'
+        && typeof value.project.id === 'string' && value.project.id.length > 0
+        && Array.isArray(value.nodes);
+}
+
+function normalizeProjectDocument(projectDocument) {
+    if (!projectDocument || typeof projectDocument !== 'object') {
+        throw new Error('Project document is required.');
+    }
+
+    const normalized = { ...projectDocument };
+    const projectId = normalized?.project?.id;
+
+    if ((!normalized.id || normalized.id.length === 0) && typeof projectId === 'string' && projectId.length > 0) {
+        normalized.id = projectId;
+    }
+
+    if (!normalized.id || normalized.id.length === 0) {
+        throw new Error('Project document id is required.');
+    }
+
+    return normalized;
 }

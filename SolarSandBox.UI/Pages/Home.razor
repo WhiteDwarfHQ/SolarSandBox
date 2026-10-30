@@ -2,6 +2,7 @@
 @using SolarSandBox.UI.Models
 @using SolarSandBox.UI.Services
 @inject IStartupProjectRepository StartupProjectRepository
+@inject IJSRuntime JsRuntime
 
 <PageTitle>Solar Sandbox</PageTitle>
 
@@ -35,8 +36,13 @@
                 <p><strong>@_activeProject.Name</strong> (@_activeProject.Kind)</p>
                 <p>Last opened: @_activeProject.UpdatedAtUtc.ToLocalTime().ToString("g")</p>
                 <p class="status">Startup complete. This project was auto-opened from IndexedDB.</p>
+                @if (!string.IsNullOrWhiteSpace(_exportStatus))
+                {
+                    <p class="status">@_exportStatus</p>
+                }
                 <div class="actions">
                     <button class="btn btn-primary" @onclick="OpenProjectModal">New Project</button>
+                    <button class="btn" @onclick="ExportProjectJsonAsync" disabled="@_isBusy">Export JSON</button>
                 </div>
             </section>
         }
@@ -80,6 +86,7 @@
     private bool _isBusy;
     private bool _showProjectModal;
     private string? _errorMessage;
+    private string? _exportStatus;
 
     protected override async Task OnInitializedAsync()
     {
@@ -90,6 +97,7 @@
     {
         _isLoading = true;
         _errorMessage = null;
+        _exportStatus = null;
 
         try
         {
@@ -111,6 +119,7 @@
     {
         _isBusy = true;
         _errorMessage = null;
+        _exportStatus = null;
 
         try
         {
@@ -133,6 +142,41 @@
         if (_activeProject is not null)
         {
             _showProjectModal = false;
+        }
+    }
+
+    private async Task ExportProjectJsonAsync()
+    {
+        if (_activeProject is null)
+        {
+            _exportStatus = "No active project to export.";
+            return;
+        }
+
+        _isBusy = true;
+        _errorMessage = null;
+
+        try
+        {
+            var json = await StartupProjectRepository.ExportActiveProjectJsonAsync();
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                _exportStatus = "Unable to export project JSON.";
+                return;
+            }
+
+            var fileName = $"solar-sandbox-{_activeProject.Kind.ToString().ToLowerInvariant()}-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}.json";
+            await JsRuntime.InvokeVoidAsync("solarSandboxApp.downloadTextFile", fileName, json, "application/json;charset=utf-8");
+
+            _exportStatus = "Project JSON exported.";
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Project export failed: {ex.Message}";
+        }
+        finally
+        {
+            _isBusy = false;
         }
     }
 

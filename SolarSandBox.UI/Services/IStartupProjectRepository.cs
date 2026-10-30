@@ -11,4 +11,6 @@ public interface IStartupProjectRepository
     Task<StartupProject> CreateProjectAsync(StartupProjectKind kind);
 
     Task SetLastActiveProjectAsync(string projectId);
+
+    Task<string?> ExportActiveProjectJsonAsync();
 }
